@@ -1,0 +1,67 @@
+# Django backend. Replace <PINNED_TAG> with a tested image tag or digest (avoid :latest).
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: daykin
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+# Media storage. All backend replicas that serve or write media need access.
+# ReadWriteOnce is fine for one replica; use RWX or object storage before scaling out.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: daykin-media
+  namespace: daykin
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi   # TODO: size from the real media volume
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: daykin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: kennedymutebi/daykin-backend:<PINNED_TAG>
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: daykin-config
+            - secretRef:
+                name: daykin-secrets
+          # TODO: add readiness/liveness probes once a reliable health endpoint is identified.
+          # TODO: confirm the app retries DB/Redis connections at startup (no Compose depends_on here).
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+          volumeMounts:
+            - name: media
+              mountPath: /app/media
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: daykin-media

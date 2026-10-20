@@ -1,0 +1,23 @@
+# Secrets: never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+*-secret.yaml
+!*secret.example.yaml
+kubeconfig
+*.kubeconfig
+
+# Backups and data dumps
+*.sql
+*.sql.gz
+*.tar.gz
+backups/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

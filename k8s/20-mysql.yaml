@@ -1,0 +1,77 @@
+# MySQL 8.0 as a single-replica StatefulSet with persistent storage.
+# See docs/decisions/0001-mysql-statefulset.md
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: daykin
+spec:
+  clusterIP: None        # headless Service for the StatefulSet; resolves to the pod
+  selector:
+    app: mysql
+  ports:
+    - name: mysql
+      port: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: daykin
+spec:
+  serviceName: mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: daykin-secrets
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: daykin-config
+                  key: MYSQL_DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: daykin-config
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: daykin-secrets
+                  key: MYSQL_PASSWORD
+          # TODO: add readiness/liveness probes after confirming startup time (mysqladmin ping).
+          # TODO: tune requests/limits after measuring real usage.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        # storageClassName: <set if your cluster needs a specific class>
+        resources:
+          requests:
+            storage: 10Gi   # TODO: size from the real database size plus headroom
