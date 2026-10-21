@@ -31,8 +31,7 @@ flowchart LR
 
 ```
 
-Everything runs on one Ubuntu 24.04 VPS (3 vCPU, ~7.8 GiB RAM) that also hosts other applications.
-![Ebiseera running on Docker Compose before the migration](docs/evidence/2026-10-20-phase0-site-before.png)
+
 ## After: Kubernetes (target design)
 
 ```mermaid
@@ -95,9 +94,21 @@ This is the **target design**. It is validated step by step, and the diagram is 
 
 No secrets are committed to this repository. Manifests use placeholders, real values live in Kubernetes Secrets created out-of-band, and `.env` files are git-ignored. See `.env.example` for variable names only.
 
+
+
 ## Evidence
 
-Screenshots and recordings of the running cluster, a rolling update, and a restore test will be added to `docs/evidence/` as each phase completes.
+### Phase 0: Starting point
+![Ebiseera running on Docker Compose before the migration](docs/evidence/2026-10-20-phase0-site-before.png)
+
+### Phase 1: Backups
+Backup created on the server with no downtime (MySQL dump and media archive):
+
+![Backup files on the server](docs/evidence/2026-10-21-phase1-backup-on-server.png)
+
+Copy kept on a second machine:
+
+![Backup copied to my computer](docs/evidence/2026-10-21-phase1-backup-copied-local.png)
 
 ## Write-ups
 
