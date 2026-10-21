@@ -11,8 +11,8 @@ Screenshots and short recordings that show the work is real. Add files here and 
 - [ ] A rolling update: `kubectl rollout status` (before and after)
 - [ ] A rollback: `kubectl rollout undo`
 - [ ] A pod killed and automatically recreated
-- [ ] Backup file created and checksum
-- [ ] Restore test: row counts matching source versus restored
+- [ X] Backup file created and checksum
+- [ X] Restore test: row counts matching source versus restored
 - [ ] Celery worker processing a task; Beat scheduling one
 - [ ] (Later) Grafana dashboard and the CI/CD pipeline run
 

@@ -109,6 +109,17 @@ Backup created on the server with no downtime (MySQL dump and media archive):
 Copy kept on a second machine:
 
 ![Backup copied to my computer](docs/evidence/2026-10-21-phase1-backup-copied-local.png)
+Restore test: the backup was loaded into a throwaway MySQL on my computer and row counts were compared with the live database.
+
+Test copy (restored from backup):
+
+![Row counts in the restored test database](docs/evidence/2026-10-21-phase1-restore-counts-test.png)
+
+Live database:
+
+![Row counts in the live database](docs/evidence/2026-10-21-phase1-restore-counts-live.png)
+
+Result: all 22 tables restored and row counts matched the live database.
 
 ## Write-ups
 
