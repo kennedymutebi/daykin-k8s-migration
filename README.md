@@ -62,7 +62,7 @@ This is the **target design**. It is validated step by step, and the diagram is 
 | Phase | Goal | Status |
 |---|---|---|
 | 0. Discovery | Inventory the current deployment, record unknowns | ✅ Done ([plan](docs/Daykin_Docker_to_Kubernetes_Migration_Plan.pdf)) |
-| 1. Backups and recovery | Verified MySQL and media backups, tested restore | ⬜ |
+| 1. Backups and recovery | Verified MySQL and media backups, tested restore | ✅ Done |
 | 2. Kubernetes foundation (isolated) | Local/test cluster, namespace, storage, config | ⬜ |
 | 3. App and data validation | Deploy all components, restore data copy, test | ⬜ |
 | 4. Traffic cutover | Route via the proxy to Kubernetes, with rollback plan | ⬜ |
