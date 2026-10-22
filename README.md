@@ -120,6 +120,10 @@ Live database:
 ![Row counts in the live database](docs/evidence/2026-10-21-phase1-restore-counts-live.png)
 
 Result: all 22 tables restored and row counts matched the live database.
+### Phase 2: Kubernetes foundation (local test cluster)
+A local `kind` cluster (Kubernetes v1.37) running on my computer, separate from the live server. All control plane pods and the storage provisioner are Running:
+
+![Local kind cluster running](docs/evidence/2026-10-23-phase2-cluster-running.png)
 
 ## Write-ups
 
