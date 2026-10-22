@@ -1,4 +1,4 @@
-# Django backend. Replace <PINNED_TAG> with a tested image tag or digest (avoid :latest).
+# Django backend. Image tag copied from the live Compose file (pinned, not :latest).
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,8 +12,9 @@ spec:
       port: 8000
       targetPort: 8000
 ---
-# Media storage. All backend replicas that serve or write media need access.
-# ReadWriteOnce is fine for one replica; use RWX or object storage before scaling out.
+# Media storage, shared by backend and Celery worker (as in Compose: daykin_media).
+# ReadWriteOnce works here because everything runs on one node; use RWX or object
+# storage before moving to multiple nodes.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -23,7 +24,7 @@ spec:
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:
-      storage: 5Gi   # TODO: size from the real media volume
+      storage: 2Gi   # live media archive is ~158 MB compressed
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -40,9 +41,14 @@ spec:
       labels:
         app: backend
     spec:
+      # Kubernetes has no depends_on. Wait until MySQL accepts connections first.
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z mysql 3306; do echo waiting for mysql; sleep 2; done"]
       containers:
         - name: backend
-          image: kennedymutebi/daykin-backend:<PINNED_TAG>
+          image: kennedymutebi/daykin-backend:18026a3fd3278771ffe3f5484c3984110b0cfa05
           ports:
             - containerPort: 8000
           envFrom:
@@ -51,7 +57,7 @@ spec:
             - secretRef:
                 name: daykin-secrets
           # TODO: add readiness/liveness probes once a reliable health endpoint is identified.
-          # TODO: confirm the app retries DB/Redis connections at startup (no Compose depends_on here).
+          # TODO: check what /app/entrypoint.sh does (migrations? collectstatic?) before scaling.
           resources:
             requests:
               cpu: 250m

@@ -65,7 +65,7 @@ This is the **target design**. It is validated step by step, and the diagram is 
 | 1. Backups and recovery | Verified MySQL and media backups, tested restore | ✅ Done |
 | 2. Kubernetes foundation (isolated) | Local/test cluster, namespace, storage, config |  ✅ Done |
 - [x] Redis deployed and Running in the `daykin` namespace | ✅ Done|
-| 3. App and data validation | Deploy all components, restore data copy, test | ⬜ |
+| 3. App and data validation | Deploy all components, restore data copy, test | ✅ Done |
 | 4. Traffic cutover | Route via the proxy to Kubernetes, with rollback plan | ⬜ |
 | 5. Cleanup | Remove old resources only after stability | ⬜ |
 
@@ -126,16 +126,17 @@ Result: all 22 tables restored and row counts matched the live database.
 A local `kind` cluster (Kubernetes v1.37) running on my computer, separate from the live server. All control plane pods and the storage provisioner are Running:
 ### 2026-10-23: First image pull was slow
 
-- **What happened:** The Redis pod stayed `ContainerCreating` for about 90 seconds, and my first `kubectl logs` failed with "waiting to start".
-- **Root cause:** The cluster node had to download the image from Docker Hub for the first time, over a slow connection.
-- **Fix:** Waited, then read `kubectl describe pod` Events to confirm the pull succeeded.
-- **Lesson:** `ContainerCreating` isn't an error. Check Events with `describe` before assuming something is broken.
+
 
 ![Local kind cluster running](docs/evidence/2026-10-23-phase2-cluster-running.png)
 Redis deployed in the `daykin` namespace as a Deployment with a ClusterIP Service. The pod is `1/1 Running` and passes its readiness probe:
 
 ![Redis running in the cluster](docs/evidence/2026-10-23-phase2-redis-running.png)
 
+### Phase 3: Data restored into Kubernetes
+The production backup was restored into MySQL running as a StatefulSet in the local cluster. Row counts match the live database for all 22 tables, except `api_presence` (175 vs 178), which is a visit counter that kept growing on the live site after the backup was taken.
+
+![Row counts in the Kubernetes MySQL](docs/evidence/2026-10-23-phase3-cluster-restore-counts.png)
 ## Write-ups
 
 Milestone posts will be linked here as they are published.

@@ -1,4 +1,5 @@
 # MySQL 8.0 as a single-replica StatefulSet with persistent storage.
+# Mirrors the Compose service "daykin_db": root password + database daykin_db.
 # See docs/decisions/0001-mysql-statefulset.md
 apiVersion: v1
 kind: Service
@@ -41,22 +42,25 @@ spec:
                   name: daykin-secrets
                   key: MYSQL_ROOT_PASSWORD
             - name: MYSQL_DATABASE
-              valueFrom:
-                configMapKeyRef:
-                  name: daykin-config
-                  key: MYSQL_DATABASE
-            - name: MYSQL_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: daykin-config
-                  key: MYSQL_USER
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: daykin-secrets
-                  key: MYSQL_PASSWORD
-          # TODO: add readiness/liveness probes after confirming startup time (mysqladmin ping).
-          # TODO: tune requests/limits after measuring real usage.
+              value: "daykin_db"
+            - name: MYSQL_ROOT_HOST
+              value: "%"
+          # Replaces the Compose healthcheck (mysqladmin ping). The password is read
+          # from the container's own environment, never written in the file.
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h localhost -uroot -p\"$MYSQL_ROOT_PASSWORD\""]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h localhost -uroot -p\"$MYSQL_ROOT_PASSWORD\""]
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu: 250m
@@ -71,7 +75,6 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        # storageClassName: <set if your cluster needs a specific class>
         resources:
           requests:
-            storage: 10Gi   # TODO: size from the real database size plus headroom
+            storage: 5Gi   # live DB backup is under 1 MB compressed; 5Gi leaves headroom
