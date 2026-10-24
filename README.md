@@ -143,7 +143,13 @@ Redis deployed in the `daykin` namespace as a Deployment with a ClusterIP Servic
 
 ![Backend startup logs](docs/evidence/2026-10-24-phase3-backend-logs.png)
 
+
 Note: the cluster currently runs a locally built test image (`daykin-backend:k8s-test`) that reads the DB host from configuration. The manifest still points at the production tag until the fix is released through CI.
+**API answering from the cluster.** A temporary `kubectl port-forward` tunnel connects my browser to the backend pod. The love-stories endpoint returns `"count":34`, the same number of stories as the live site, so the whole chain works: browser → Django → MySQL in Kubernetes → restored data.
+
+![Port-forward tunnel into the cluster](docs/evidence/2026-10-24-phase3-port-forward.png)
+
+![API response with 34 stories](docs/evidence/2026-10-24-phase3-api-from-cluster.png)
 ## Write-ups
 
 Milestone posts will be linked here as they are published.
