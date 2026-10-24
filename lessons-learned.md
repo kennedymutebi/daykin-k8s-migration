@@ -49,5 +49,32 @@ Copy the template below. Keep it short and specific.
 - **How I found it:** `kubectl describe pod` → Events: "couldn't find key MYSQL_DATABASE in ConfigMap".
 - **Fix:** Deleted the StatefulSet (the disk is kept) and applied the corrected manifest fresh.
 - **Lesson:** Check that every referenced ConfigMap and Secret key exists before applying. If a StatefulSet is stuck, delete and re-create it.
+Problem: the backend crashed in a loop with Unknown server host 'daykin_db'.
+Cause: a hostname from Docker Compose was assumed by the app.
+How I found it: kubectl logs.
+
+### 2026-10-23: StatefulSet stuck on a broken pod
+- **Phase:** 3: Validation
+- **What happened:** `mysql-0` stayed in `CreateContainerConfigError` even after I fixed the manifest and deleted the pod.
+- **Root cause:** The first manifest referenced ConfigMap/Secret keys that did not exist. A StatefulSet will not roll out a fixed definition while its existing pod is unhealthy.
+- **How I found it:** `kubectl describe pod` → Events: "couldn't find key MYSQL_DATABASE in ConfigMap".
+- **Fix:** Deleted the StatefulSet (the disk is kept) and applied the corrected manifest.
+- **Lesson:** Check every referenced ConfigMap/Secret key exists before applying.
+
+### 2026-10-24: Hard-coded database hostname in the app
+- **Phase:** 3: Validation
+- **What happened:** The backend crash-looped with `Unknown server host 'daykin_db'`.
+- **Root cause:** `settings.py` hard-coded the Compose service name as the DB host when `RUNNING_IN_DOCKER` is true, ignoring `DB_HOST`. Kubernetes also forbids underscores in Service names, so the old name could not be recreated.
+- **Fix:** Read the host from the environment, keeping today's value as the default: `config('DB_HOST', default=...)`. Built and tested a local image; nothing was pushed to production.
+- **Lesson:** Configuration belongs in the environment, not in code. Name rules differ between Docker Compose and Kubernetes.
+
+### 2026-10-24: Local image build took 91 minutes
+- **What happened:** `docker build` took 5,466 s on a slow connection (pip install about 39 min).
+- **Lesson:** Layer caching makes later builds faster. For real releases, let CI build the image.
+
+### 2026-10-24: kind was not found in an old PowerShell window
+- **Root cause:** The window was opened before kind was installed, so its PATH was stale. `kubectl set image` ran anyway and pointed the Deployment at an image the cluster did not yet have.
+- **Fix:** Used a new window, ran `kind load docker-image`, then recreated the pod.
+- **Lesson:** Run the commands one at a time and check each result.
 
 <!-- Add new entries below as you go. -->
