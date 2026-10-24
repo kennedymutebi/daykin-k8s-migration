@@ -107,3 +107,9 @@ kubectl rollout undo deployment/backend      # rollback
 
 - [ ] Only after stability and verified backups
 - [ ] Never delete Docker volumes until contents are confirmed migrated and recoverable
+### Restore rules (learned the hard way)
+- Always restore with `--default-character-set=utf8mb4`.
+- Verify real text after a restore (open a few records through the API), not only row counts.
+- When extracting one database from an `--all-databases` dump, remember that the dump header (which sets the character set) is not included. Set the character set explicitly.
+- Better for next time: back up only the app database with
+  `mysqldump --single-transaction --default-character-set=utf8mb4 --databases daykin_db`.

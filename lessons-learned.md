@@ -77,4 +77,14 @@ How I found it: kubectl logs.
 - **Fix:** Used a new window, ran `kind load docker-image`, then recreated the pod.
 - **Lesson:** Run the commands one at a time and check each result.
 
+### 2026-10-24: Restore garbled emoji and special characters
+- **Phase:** 3: App and data validation
+- **What happened:** Row counts matched the live database, but story text in the restored copy showed mojibake (for example `Ã°Å¸Ëœâ€š` instead of an emoji, and `â€œ ... â€` instead of curly quotes).
+- **Root cause:** I extracted only the `daykin_db` section of an `--all-databases` dump. That removed the header line that sets the client character set, and I restored without specifying one, so UTF-8 text was read with the wrong encoding.
+- **How I found it:** By reading real records through the API in the browser, then comparing with the live site, which showed the text correctly.
+- **Fix:** Dropped the test database and reloaded the same file with `--default-character-set=utf8mb4`. The live database and the backup file were never affected.
+- **Result:** Row counts and text now match the live site.
+- **Lesson:** Matching row counts do not prove matching content. Verify actual text, and set the character set explicitly for backups and restores.
+- **Evidence:** `docs/evidence/2026-10-24-phase3-api-emoji-fixed.png`
+
 <!-- Add new entries below as you go. -->

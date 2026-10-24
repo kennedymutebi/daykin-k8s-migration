@@ -150,6 +150,9 @@ Note: the cluster currently runs a locally built test image (`daykin-backend:k8s
 ![Port-forward tunnel into the cluster](docs/evidence/2026-10-24-phase3-port-forward.png)
 
 ![API response with 34 stories](docs/evidence/2026-10-24-phase3-api-from-cluster.png)
+**Content verified, not just counts.** Row counts matched after the first restore, but reading real records through the API showed garbled emoji and quotes (a character-encoding problem caused by my restore command, not by the live data). I reloaded the data with `--default-character-set=utf8mb4` and verified again: text now matches the live site. Details in [lessons-learned.md](lessons-learned.md).
+
+![API response with correct emoji after the encoding fix](docs/evidence/2026-10-24-phase3-api-emoji-fixed.png)
 ## Write-ups
 
 Milestone posts will be linked here as they are published.
