@@ -1,4 +1,8 @@
-# Frontend served on container port 80. Replace <PINNED_TAG> (avoid :latest for production).
+# Frontend served on container port 80 (same as the live container: host 3006 -> 80).
+# Image pinned by digest: the exact image running in production when this was written,
+# so a later push of :latest cannot change what the cluster runs.
+# NOTE: this build calls https://ebiseera.com/api (baked in), i.e. PRODUCTION.
+# Do not submit forms through it until the API URL is changed or the cutover is done.
 apiVersion: v1
 kind: Service
 metadata:
@@ -29,7 +33,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: kennedymutebi/daykin-frontend:<PINNED_TAG>
+          image: kennedymutebi/daykin-frontend@sha256:a754aeac4cd78fb3ddbdbf23119d7b3109aee6539c322ca7f3fdcd7c98aa35ca
           ports:
             - containerPort: 80
           readinessProbe:

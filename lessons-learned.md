@@ -101,4 +101,13 @@ little late.
 a relative file name. My first attempt left no file in the pod, and I only noticed when the
 extracted count was 1 instead of 143. Now I check the size after the copy (165468186 bytes)
 and the file count after extraction (143) before trusting a restore.
+
+## A production frontend build points at production
+The built React bundle has https://ebiseera.com/api baked in. Running it in a test cluster is safe
+only if I don't submit anything, because its API calls reach the live site. Next time the
+API URL should be a build-time setting so a test build can point at the test backend.
+## CORS kept my test away from production
+The test frontend ran at localhost:8081 and its calls to https://ebiseera.com/api were refused by the
+browser's CORS check. It was a safety net, but not a plan: the API URL must be a build-time setting
+so test builds can point at a test backend.
 <!-- Add new entries below as you go. -->

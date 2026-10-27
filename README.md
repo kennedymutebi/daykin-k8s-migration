@@ -177,6 +177,18 @@ Note: the cluster currently runs a locally built test image (`daykin-backend:k8s
 **Media restored.** The uploaded-media archive (143 entries, about 158 MB compressed) was restored into the cluster's media volume, and the count in the cluster matched the archive. Nginx serves a restored file with `200 OK` and the correct content type. I checked with headers only, so no personal photos appear here.
 
 ![Media file count and Nginx response](docs/evidence/2026-10-27-phase3-media-restored.png)
+
+**Frontend deployed.** The React frontend runs as its own Deployment and Service, pinned to the exact image digest that runs in production. All six components (MySQL, Redis, backend with Nginx sidecar, Celery worker, Celery Beat, frontend) are now `Running` in the `daykin` namespace.
+
+![All pods running in the daykin namespace](docs/evidence/2026-10-27-phase3-frontend-running.png)
+
+![Frontend served from the cluster](docs/evidence/2026-10-27-phase3-frontend-browser.png)
+
+Note: this frontend build has the production API URL baked in, so I only checked that it loads and did not submit anything through it. A full browser test against the cluster needs a rebuild with a different API URL, or happens at cutover.
+
+Opening the frontend from `localhost:8081` shows the browser blocking its calls to the production API (CORS). This confirms two things: the bundle has the production URL baked in, and production correctly refuses unknown origins, so my test could not touch live data.
+
+![CORS block in the browser console](docs/evidence/2026-10-27-phase3-frontend-cors-blocked.png)
 ## Write-ups
 
 Milestone posts will be linked here as they are published.
