@@ -163,7 +163,7 @@ Note: the cluster currently runs a locally built test image (`daykin-backend:k8s
 
 ![Containers in the backend pod: backend and web](docs/evidence/2026-10-27-phase3-sidecar-containers.png)
 
-![Port-forward to the web Service](docs/evidence/2026-10-27-phase3-port-forward.png)
+
 
 ![Django admin CSS served through Nginx](docs/evidence/2026-10-27-phase3-nginx-static-browser.png)
 
