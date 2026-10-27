@@ -67,7 +67,50 @@ spec:
           volumeMounts:
             - name: media
               mountPath: /app/media
+            - name: static           # collectstatic writes here at every start
+              mountPath: /app/staticfiles
+        # Sidecar: Nginx serves /static/ and /media/ and forwards /api/ to Django.
+        # It shares the pod's network (Django = 127.0.0.1:8000) and the two folders.
+        - name: web
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            - name: static
+              mountPath: /app/staticfiles
+              readOnly: true
+            - name: media
+              mountPath: /app/media
+              readOnly: true
       volumes:
         - name: media
           persistentVolumeClaim:
             claimName: daykin-media
+        - name: static
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: web-nginx-conf
+---
+# Public entry point (the Nginx sidecar). Later, Nginx Proxy Manager points here.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: daykin
+spec:
+  selector:
+    app: backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80

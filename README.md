@@ -1,12 +1,12 @@
-Ebiseera: Docker Compose → Kubernetes migration
+# Ebiseera: Docker Compose → Kubernetes migration
 
 A hands-on, documented migration of a real production application (Django API + Celery + MySQL + Redis + React frontend) from Docker Compose on a single VPS to Kubernetes, done with a backup-first, test-in-isolation, planned-cutover approach.
 
-> **Status:** 🚧 In progress. Started 20 October 2026. This README is updated at each milestone.
+> **Status:** 🚧 In progress. Started 20 October 2026. Last updated 27 October 2026. This README is updated at each milestone.
 
 ## Why I'm doing this
 
-I had learned Kubernetes theoretically and wanted to prove it on something real, not a to-do-app tutorial. Daykin or now called ebiseera is a live application with state (MySQL, uploaded media), background jobs (Celery worker and Beat), and a public reverse proxy, which makes it a good test of whether I can migrate carefully without breaking production.
+I had learned Kubernetes theoretically and wanted to prove it on something real, not a to-do-app tutorial. Daykin (now called Ebiseera) is a live application with state (MySQL, uploaded media), background jobs (Celery worker and Beat), and a public reverse proxy, which makes it a good test of whether I can migrate carefully without breaking production.
 
 Goals:
 
@@ -28,29 +28,29 @@ flowchart LR
     CW["Celery worker"] --> RD
     CB["Celery Beat"] --> RD
     CW --> DB
-
 ```
-
 
 ## After: Kubernetes (target design)
 
 ```mermaid
 flowchart LR
     U[Users] --> NPM["Nginx Proxy Manager<br/>(kept initially)"]
-    NPM --> ING["Kubernetes entry point<br/>(Ingress / NodePort, tested)"]
+    NPM --> WS["Service: web :80"]
+    NPM --> FES["Service: frontend"]
     subgraph NS["Namespace: daykin"]
-        ING --> FES["Service: frontend"]
-        ING --> BES["Service: backend :8000"]
-        FES --> FED["Deployment: frontend"]
-        BES --> BED["Deployment: backend (Django)"]
-        CWD["Deployment: celery-worker"]
-        CBD["Deployment: celery-beat (1 replica)"]
-        BED --> MY[("StatefulSet: MySQL<br/>+ PVC")]
-        BED --> RDS[("Redis")]
-        BED --> MED[("PVC: media")]
-        CWD --> RDS
-        CBD --> RDS
-        CM["ConfigMap + Secrets"] -.-> BED
+        WS --> NGX
+        FES --> FED["Deployment: frontend<br/>(not deployed yet)"]
+        subgraph POD["Backend pod"]
+            NGX["Nginx sidecar"] -->|/api/| DJ["Django :8000"]
+            NGX -->|/static/| ST[("emptyDir: static")]
+        end
+        NGX -->|/media/| MED[("PVC: media")]
+        DJ --> MY[("StatefulSet: MySQL<br/>+ PVC")]
+        DJ --> RDS[("Redis")]
+        CWD["Deployment: celery-worker"] --> RDS
+        CBD["Deployment: celery-beat (1 replica)"] --> RDS
+        CWD --> MY
+        CM["ConfigMap + Secrets"] -.-> DJ
         CM -.-> CWD
     end
 ```
@@ -63,9 +63,8 @@ This is the **target design**. It is validated step by step, and the diagram is 
 |---|---|---|
 | 0. Discovery | Inventory the current deployment, record unknowns | ✅ Done ([plan](docs/Daykin_Docker_to_Kubernetes_Migration_Plan.pdf)) |
 | 1. Backups and recovery | Verified MySQL and media backups, tested restore | ✅ Done |
-| 2. Kubernetes foundation (isolated) | Local/test cluster, namespace, storage, config |  ✅ Done |
-- [x] Redis deployed and Running in the `daykin` namespace | ✅ Done|
-| 3. App and data validation | Deploy all components, restore data copy, test | ✅ Done |
+| 2. Kubernetes foundation (isolated) | Local/test cluster, namespace, storage, config | ✅ Done |
+| 3. App and data validation | Deploy all components, restore data copy, test | 🔄 In progress (media restore, frontend and Beat proof left) |
 | 4. Traffic cutover | Route via the proxy to Kubernetes, with rollback plan | ⬜ |
 | 5. Cleanup | Remove old resources only after stability | ⬜ |
 
@@ -76,12 +75,12 @@ This is the **target design**. It is validated step by step, and the diagram is 
 ├── README.md                 ← you are here
 ├── lessons-learned.md        ← real problems hit and how they were fixed
 ├── .env.example              ← variable NAMES only, never real values
-├── k8s/                      ← starter manifests (placeholders, no secrets)
+├── k8s/                      ← manifests (placeholders, no secrets)
 └── docs/
     ├── Daykin_Docker_to_Kubernetes_Migration_Plan.pdf
     ├── runbook.md            ← backup, restore, deploy, rollback steps
     ├── decisions/            ← short decision records (why X, not Y)
-    ├── evidence/             ← screenshots / recordings checklist
+    ├── evidence/             ← screenshots
     └── posts/                ← plan for the milestone write-ups
 ```
 
@@ -90,19 +89,20 @@ This is the **target design**. It is validated step by step, and the diagram is 
 - [Why MySQL is a StatefulSet with a PVC](docs/decisions/0001-mysql-statefulset.md)
 - [Why Nginx Proxy Manager stays in front at first](docs/decisions/0002-keep-nginx-proxy-manager.md)
 - [Why I test outside production](docs/decisions/0003-test-outside-production.md)
+- [Why Nginx runs as a sidecar in the backend pod](docs/decisions/0004-nginx-sidecar.md)
 
 ## Security
 
 No secrets are committed to this repository. Manifests use placeholders, real values live in Kubernetes Secrets created out-of-band, and `.env` files are git-ignored. See `.env.example` for variable names only.
 
-
-
 ## Evidence
 
 ### Phase 0: Starting point
+
 ![Ebiseera running on Docker Compose before the migration](docs/evidence/2026-10-20-phase0-site-before.png)
 
 ### Phase 1: Backups
+
 Backup created on the server with no downtime (MySQL dump and media archive):
 
 ![Backup files on the server](docs/evidence/2026-10-21-phase1-backup-on-server.png)
@@ -110,6 +110,7 @@ Backup created on the server with no downtime (MySQL dump and media archive):
 Copy kept on a second machine:
 
 ![Backup copied to my computer](docs/evidence/2026-10-21-phase1-backup-copied-local.png)
+
 Restore test: the backup was loaded into a throwaway MySQL on my computer and row counts were compared with the live database.
 
 Test copy (restored from backup):
@@ -123,6 +124,7 @@ Live database:
 Result: all 22 tables restored and row counts matched the live database.
 
 ### Phase 2: Kubernetes foundation (local test cluster)
+
 A local `kind` cluster (Kubernetes v1.37) running on my computer, separate from the live server. All control plane pods and the storage provisioner are Running:
 
 ![Local kind cluster running](docs/evidence/2026-10-23-phase2-cluster-running.png)
@@ -143,16 +145,30 @@ Redis deployed in the `daykin` namespace as a Deployment with a ClusterIP Servic
 
 ![Backend startup logs](docs/evidence/2026-10-24-phase3-backend-logs.png)
 
-
 Note: the cluster currently runs a locally built test image (`daykin-backend:k8s-test`) that reads the DB host from configuration. The manifest still points at the production tag until the fix is released through CI.
+
 **API answering from the cluster.** A temporary `kubectl port-forward` tunnel connects my browser to the backend pod. The love-stories endpoint returns `"count":34`, the same number of stories as the live site, so the whole chain works: browser → Django → MySQL in Kubernetes → restored data.
 
 ![Port-forward tunnel into the cluster](docs/evidence/2026-10-24-phase3-port-forward.png)
 
 ![API response with 34 stories](docs/evidence/2026-10-24-phase3-api-from-cluster.png)
+
 **Content verified, not just counts.** Row counts matched after the first restore, but reading real records through the API showed garbled emoji and quotes (a character-encoding problem caused by my restore command, not by the live data). I reloaded the data with `--default-character-set=utf8mb4` and verified again: text now matches the live site. Details in [lessons-learned.md](lessons-learned.md).
 
 ![API response with correct emoji after the encoding fix](docs/evidence/2026-10-24-phase3-api-emoji-fixed.png)
+
+**Nginx sidecar.** The backend pod now has two containers: Django and Nginx. Nginx serves `/static/` and `/media/` and forwards `/api/` to Django, as the production Nginx does ([decision 0004](docs/decisions/0004-nginx-sidecar.md)).
+
+![Backend pod 2/2 Running](docs/evidence/2026-10-27-phase3-pods-2of2.png)
+
+![Containers in the backend pod: backend and web](docs/evidence/2026-10-27-phase3-sidecar-containers.png)
+
+![Port-forward to the web Service](docs/evidence/2026-10-27-phase3-port-forward.png)
+
+![Django admin CSS served through Nginx](docs/evidence/2026-10-27-phase3-nginx-static-browser.png)
+
+![API root served through Nginx](docs/evidence/2026-10-27-phase3-nginx-api-browser.png)
+
 ## Write-ups
 
 Milestone posts will be linked here as they are published.
