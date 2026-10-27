@@ -86,5 +86,19 @@ How I found it: kubectl logs.
 - **Result:** Row counts and text now match the live site.
 - **Lesson:** Matching row counts do not prove matching content. Verify actual text, and set the character set explicitly for backups and restores.
 - **Evidence:** `docs/evidence/2026-10-24-phase3-api-emoji-fixed.png`
+## Beat catches up after the laptop sleeps
+After my laptop slept, Beat sent the overdue hourly task as soon as the cluster woke (11:31 and
+13:09 instead of on the hour). On a server this won't happen, but it showed that the schedule
+survives a pause and that tasks must be safe to run slightly late.
 
+## Beat catches up after the laptop sleeps
+After my laptop slept, Beat sent the overdue hourly task as soon as the cluster woke (11:31 and
+13:09 instead of on the hour). The schedule survives a pause, and tasks must be safe to run a
+little late.
+
+## kubectl cp and Windows paths
+`kubectl cp` reads `C:` in a path as a pod name, so I moved into the backups folder and used
+a relative file name. My first attempt left no file in the pod, and I only noticed when the
+extracted count was 1 instead of 143. Now I check the size after the copy (165468186 bytes)
+and the file count after extraction (143) before trusting a restore.
 <!-- Add new entries below as you go. -->

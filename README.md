@@ -168,7 +168,15 @@ Note: the cluster currently runs a locally built test image (`daykin-backend:k8s
 ![Django admin CSS served through Nginx](docs/evidence/2026-10-27-phase3-nginx-static-browser.png)
 
 ![API root served through Nginx](docs/evidence/2026-10-27-phase3-nginx-api-browser.png)
+**Celery Beat and worker.** Beat sends the hourly `process_birthday_celebrations` task and the worker runs it successfully, shown here at 14:00 and 15:00. Beat runs as a single replica so the job is never triggered twice.
 
+![Beat sending the task and the worker completing it](docs/evidence/2026-10-27-phase3-celery-task-ran.png)
+**Celery Beat and worker.** Beat sends the hourly `process_birthday_celebrations` task and the worker runs it successfully. Beat runs as a single replica so the job is never triggered twice.
+
+![Beat sending the task and the worker completing it](docs/evidence/2026-10-27-phase3-celery-task-ran.png2)
+**Media restored.** The uploaded-media archive (143 entries, about 158 MB compressed) was restored into the cluster's media volume, and the count in the cluster matched the archive. Nginx serves a restored file with `200 OK` and the correct content type. I checked with headers only, so no personal photos appear here.
+
+![Media file count and Nginx response](docs/evidence/2026-10-27-phase3-media-restored.png)
 ## Write-ups
 
 Milestone posts will be linked here as they are published.
