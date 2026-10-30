@@ -189,6 +189,8 @@ Note: the cluster currently runs a locally built test image (`daykin-backend:k8s
 
 **Full browser test against the cluster.** The frontend source reads `VITE_API_BASE_URL` at build time. I ran the frontend on my PC with `npm run dev` and set that variable to `http://localhost:8080/api` for one PowerShell session only, so no source file changed and nothing could be pushed to the CI/CD pipeline. The browser's Network tab shows every request going to `localhost`, not `ebiseera.com`, and the app shows the restored data from the cluster's MySQL.
 
+![The Ebiseera frontend running on my PC and showing data from the Kubernetes backend](docs/evidence/2026-10-30-phase3-frontend-working-from-cluster.png)
+
 ## Write-ups
 
 Milestone posts will be linked here as they are published.
