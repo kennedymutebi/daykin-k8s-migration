@@ -2,7 +2,7 @@
 
 A hands-on, documented migration of a real production application (Django API + Celery + MySQL + Redis + React frontend) from Docker Compose on a single VPS to Kubernetes, done with a backup-first, test-in-isolation, planned-cutover approach.
 
-> **Status:** 🚧 In progress. Started 20 October 2026. Last updated 27 October 2026. This README is updated at each milestone.
+> **Status:** 🚧 In progress. Started 20 October 2026. Last updated 30 October 2026. This README is updated at each milestone.
 
 ## Why I'm doing this
 
@@ -39,7 +39,7 @@ flowchart LR
     NPM --> FES["Service: frontend"]
     subgraph NS["Namespace: daykin"]
         WS --> NGX
-        FES --> FED["Deployment: frontend<br/>(not deployed yet)"]
+        FES --> FED["Deployment: frontend"]
         subgraph POD["Backend pod"]
             NGX["Nginx sidecar"] -->|/api/| DJ["Django :8000"]
             NGX -->|/static/| ST[("emptyDir: static")]
@@ -64,7 +64,7 @@ This is the **target design**. It is validated step by step, and the diagram is 
 | 0. Discovery | Inventory the current deployment, record unknowns | ✅ Done ([plan](docs/Daykin_Docker_to_Kubernetes_Migration_Plan.pdf)) |
 | 1. Backups and recovery | Verified MySQL and media backups, tested restore | ✅ Done |
 | 2. Kubernetes foundation (isolated) | Local/test cluster, namespace, storage, config | ✅ Done |
-| 3. App and data validation | Deploy all components, restore data copy, test | 🔄 In progress (media restore, frontend and Beat proof left) |
+| 3. App and data validation | Deploy all components, restore data copy, test | 🔄 In progress (final proof that the frontend reads cluster data left) |
 | 4. Traffic cutover | Route via the proxy to Kubernetes, with rollback plan | ⬜ |
 | 5. Cleanup | Remove old resources only after stability | ⬜ |
 
@@ -163,17 +163,16 @@ Note: the cluster currently runs a locally built test image (`daykin-backend:k8s
 
 ![Containers in the backend pod: backend and web](docs/evidence/2026-10-27-phase3-sidecar-containers.png)
 
-
+![Port-forward to the web Service](docs/evidence/2026-10-27-phase3-port-forward.png)
 
 ![Django admin CSS served through Nginx](docs/evidence/2026-10-27-phase3-nginx-static-browser.png)
 
 ![API root served through Nginx](docs/evidence/2026-10-27-phase3-nginx-api-browser.png)
+
 **Celery Beat and worker.** Beat sends the hourly `process_birthday_celebrations` task and the worker runs it successfully, shown here at 14:00 and 15:00. Beat runs as a single replica so the job is never triggered twice.
 
 ![Beat sending the task and the worker completing it](docs/evidence/2026-10-27-phase3-celery-task-ran.png)
-**Celery Beat and worker.** Beat sends the hourly `process_birthday_celebrations` task and the worker runs it successfully. Beat runs as a single replica so the job is never triggered twice.
 
-![Beat sending the task and the worker completing it](docs/evidence/2026-10-27-phase3-celery-task-ran.png2)
 **Media restored.** The uploaded-media archive (143 entries, about 158 MB compressed) was restored into the cluster's media volume, and the count in the cluster matched the archive. Nginx serves a restored file with `200 OK` and the correct content type. I checked with headers only, so no personal photos appear here.
 
 ![Media file count and Nginx response](docs/evidence/2026-10-27-phase3-media-restored.png)
@@ -184,11 +183,12 @@ Note: the cluster currently runs a locally built test image (`daykin-backend:k8s
 
 ![Frontend served from the cluster](docs/evidence/2026-10-27-phase3-frontend-browser.png)
 
-Note: this frontend build has the production API URL baked in, so I only checked that it loads and did not submit anything through it. A full browser test against the cluster needs a rebuild with a different API URL, or happens at cutover.
-
-Opening the frontend from `localhost:8081` shows the browser blocking its calls to the production API (CORS). This confirms two things: the bundle has the production URL baked in, and production correctly refuses unknown origins, so my test could not touch live data.
+**The production build points at production.** This frontend build has the production API URL baked in. Opening it from `localhost:8081` shows the browser blocking its calls to the live API (CORS). That confirms the bundle uses the production URL, and that production correctly refuses unknown origins, so my test could not touch live data.
 
 ![CORS block in the browser console](docs/evidence/2026-10-27-phase3-frontend-cors-blocked.png)
+
+**Full browser test against the cluster.** The frontend source reads `VITE_API_BASE_URL` at build time. I ran the frontend on my PC with `npm run dev` and set that variable to `http://localhost:8080/api` for one PowerShell session only, so no source file changed and nothing could be pushed to the CI/CD pipeline. The browser's Network tab shows every request going to `localhost`, not `ebiseera.com`, and the app shows the restored data from the cluster's MySQL.
+
 ## Write-ups
 
 Milestone posts will be linked here as they are published.
